@@ -1,0 +1,6 @@
+{
+  "name": "ArungMasa",
+  "description": "Aplikasi pembelajaran mikro sejarah interaktif Kurikulum Merdeka untuk siswa SMA dengan estetika jurnal arsip nusantara.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
