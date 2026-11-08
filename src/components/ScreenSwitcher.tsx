@@ -7,6 +7,7 @@ interface ScreenSwitcherProps {
 }
 
 const SCREENS: { id: ScreenType; label: string; icon: string }[] = [
+  { id: 'landing', label: '0. Landing Page', icon: 'public' },
   { id: 'beranda', label: '1. Beranda', icon: 'cottage' },
   { id: 'materi', label: '2. Materi', icon: 'menu_book' },
   { id: 'kuis', label: '3. Evaluasi', icon: 'quiz' },

@@ -77,7 +77,7 @@
   .font-label-sm { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.04em; }
 
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
-  .pt-safe { padding-top: var(--safe-top, env(safe-area-inset-top, 0px)); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 }
 
 /* Hide scrollbar for clean horizontal scrolls */
@@ -142,120 +142,14 @@
   animation: pulse-stamp 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ===========================================================
-   PHONE FRAME — bingkai pratinjau untuk layar lebar
-   =========================================================== */
-
-:root {
-  --pf-screen-w: 390px;
-  --pf-screen-h: 844px;
-  --pf-bezel: 12px;
-  --pf-radius: 48px;
-  --pf-bezel-color: #1f1710;
-}
-
-/* Tinggi acuan aplikasi. Tanpa bingkai = tinggi jendela; di dalam bingkai
-   nilainya ditimpa menjadi tinggi layar bingkai (lihat media query). */
-.phone-screen {
-  --app-height: 100dvh;
-}
-
-.phone-notch {
-  display: none;
-}
-
-/* Pengganti min-h-screen: ikut tinggi bingkai, bukan tinggi jendela. */
+/* Pengganti min-h-screen yang mengikuti tinggi jendela di browser HP. */
 @utility min-h-app {
-  min-height: var(--app-height, 100dvh);
+  min-height: 100dvh;
 }
 
-/* Offset di bawah header yang position:fixed. Ikut safe-area supaya konten
-   tidak tertimpa notch, baik di bingkai maupun di HP ber-notch asli. */
+/* Offset di bawah header yang position:fixed, termasuk safe-area HP ber-notch. */
 @utility pt-header {
-  padding-top: calc(5rem + var(--safe-top, env(safe-area-inset-top, 0px)));
-}
-
-
-@media (min-width: 768px) {
-  /* Latar di luar bingkai: netral hangat, serasi dengan palet arsip. */
-  body:has(.pf-framed) {
-    background-color: #d2c7b3;
-  }
-
-  .pf-framed {
-    display: flex;
-    min-height: 100dvh;
-    padding: 2rem 1rem;
-    background-color: #ded4c2;
-    background-image:
-      radial-gradient(ellipse at 50% 0%, rgba(255, 252, 245, 0.5), transparent 62%),
-      linear-gradient(to bottom, #e4dbcb, #cfc4b0);
-  }
-
-  /* margin:auto memusatkan bingkai tanpa memotong bagian atas saat
-     jendela lebih pendek daripada bingkai (beda dengan align-items:center). */
-  .pf-framed .phone-frame {
-    position: relative;
-    flex: none;
-    margin: auto;
-    width: calc(var(--pf-screen-w) + var(--pf-bezel) * 2);
-    height: calc(var(--pf-screen-h) + var(--pf-bezel) * 2);
-    border: var(--pf-bezel) solid var(--pf-bezel-color);
-    border-radius: var(--pf-radius);
-    background-color: #f6f0e4;
-    overflow: hidden;
-    /* Kunci utama: transform menjadikan bingkai containing block, sehingga
-       header & bottom nav yang position:fixed menempel ke bingkai dan
-       bukan ke viewport browser. */
-    transform: translateZ(0);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 28px 64px -16px rgba(42, 30, 20, 0.5),
-      0 10px 24px -10px rgba(42, 30, 20, 0.32);
-  }
-
-  .pf-framed .phone-notch {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    width: 118px;
-    height: 24px;
-    background-color: var(--pf-bezel-color);
-    border-bottom-left-radius: 14px;
-    border-bottom-right-radius: 14px;
-    pointer-events: none;
-  }
-
-  /* Layar pendek (mis. laptop 1440x900): kecilkan padding supaya bingkai
-     tetap utuh tanpa memaksa halaman menggulir. */
-  @media (max-height: 920px) {
-    .pf-framed {
-      padding: 0.75rem 1rem;
-    }
-  }
-
-  /* Satu-satunya area scroll aplikasi saat dibingkai. */
-  .pf-framed .phone-screen {
-    /* Ruang status bar supaya notch tidak menutupi isi header. */
-    --safe-top: 28px;
-    --app-height: var(--pf-screen-h);
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* Scrollbar disembunyikan: ponsel sungguhan tidak menampilkannya, dan
-       lebarnya memotong area isi di sisi kanan sehingga seluruh tampilan
-       tergeser ke kiri terhadap bingkai (header yang position:fixed tetap
-       selebar penuh, jadi keduanya jadi tidak sejajar). */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .pf-framed .phone-screen::-webkit-scrollbar {
-    display: none;
-  }
+  padding-top: calc(5rem + env(safe-area-inset-top, 0px));
 }
 
 /* ===========================================================
@@ -298,5 +192,12 @@
   .animate-slow-spin,
   .pulse-ring {
     animation: none;
+  }
+}
+
+/* Gulir halus untuk tautan antarbagian di landing page. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }

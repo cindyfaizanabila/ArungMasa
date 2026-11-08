@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { MateriProgress, QuizResult, ScreenType, UserProfile } from '../types';
-import { MATERI_LIST } from '../data/materiData';
-import { ASSET_IMAGES } from '../data/mockData';
+import { MateriProgress, QuizResult, ScreenType, Subbab, UserProfile } from '../types';
 
 interface AkunScreenProps {
   user: UserProfile;
@@ -10,6 +8,7 @@ interface AkunScreenProps {
   onLogout: () => void;
   progress: MateriProgress;
   quizResult: QuizResult | null;
+  materiList: Subbab[];
 }
 
 export const AkunScreen: React.FC<AkunScreenProps> = ({
@@ -19,22 +18,23 @@ export const AkunScreen: React.FC<AkunScreenProps> = ({
   onLogout,
   progress,
   quizResult,
+  materiList,
 }) => {
-  const doneCount = MATERI_LIST.filter((m) => progress[m.id]).length;
+  const doneCount = materiList.filter((m) => progress[m.id]).length;
   const badges = [
     {
       id: 'perintis',
       label: 'Perintis Persatuan',
-      note: 'Selesaikan materi Kongres Pemuda II',
+      note: 'Selesaikan 1 subbab',
       icon: 'diversity_3',
-      unlocked: Boolean(progress['kongres-pemuda-ii']),
+      unlocked: doneCount >= 1,
     },
     {
       id: 'penelaah',
       label: 'Penelaah Dunia',
-      note: 'Selesaikan materi Revolusi Prancis',
+      note: 'Selesaikan 10 subbab',
       icon: 'public',
-      unlocked: Boolean(progress['revolusi-prancis']),
+      unlocked: doneCount >= 10,
     },
     {
       id: 'kurator',
@@ -75,7 +75,7 @@ export const AkunScreen: React.FC<AkunScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto pt-header pb-28 px-4 min-h-app relative z-10 space-y-4">
+    <div className="flex flex-col w-full max-w-3xl mx-auto pt-header pb-28 md:pb-12 px-4 md:px-6 min-h-app relative z-10 space-y-4">
       {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-20 left-4 right-4 max-w-sm mx-auto z-50 bg-[#333028] text-white text-xs px-3.5 py-2.5 rounded-xl shadow-lg flex items-center gap-2 animate-fadeIn">
@@ -116,12 +116,18 @@ export const AkunScreen: React.FC<AkunScreenProps> = ({
           {/* Avatar & Madya Badge */}
           <div className="relative shrink-0 group">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-[#ede8dc] shadow-inner ring-2 ring-[#502408]/20">
-              <img
-                src={user.avatarUrl || ASSET_IMAGES.dianaAvatar}
-                alt={user.name}
-                className="w-full h-full object-cover grayscale contrast-125"
-                referrerPolicy="no-referrer"
-              />
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="w-full h-full object-cover grayscale contrast-125"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="w-full h-full flex items-center justify-center text-[#85746b]">
+                  <span className="material-symbols-outlined text-[40px]">person</span>
+                </span>
+              )}
             </div>
             <div className="absolute -bottom-1.5 -right-1 bg-[#502408] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-0.5 whitespace-nowrap">
               <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -167,7 +173,7 @@ export const AkunScreen: React.FC<AkunScreenProps> = ({
           <div className="flex flex-col">
             <span className="text-[11px] text-[#52443d]">Materi</span>
             <span className="font-serif font-bold text-[17px] text-[#502408]">
-              {doneCount}/{MATERI_LIST.length}
+              {doneCount}/{materiList.length}
             </span>
           </div>
           <div className="flex flex-col border-x border-[#e8e2d6]">

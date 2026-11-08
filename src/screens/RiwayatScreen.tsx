@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { MateriProgress, QuizResult, ScreenType } from '../types';
-import { MATERI_LIST } from '../data/materiData';
+import { MateriProgress, QuizResult, ScreenType, Subbab } from '../types';
 
 interface RiwayatScreenProps {
   onNavigate: (screen: ScreenType) => void;
   onOpenMateri: (id: string) => void;
   progress: MateriProgress;
   quizResult: QuizResult | null;
+  materiList: Subbab[];
+  isMateriUnlocked: (id: string) => boolean;
 }
 
 const formatStamp = (iso: string) => {
@@ -23,13 +24,15 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({
   onOpenMateri,
   progress,
   quizResult,
+  materiList,
+  isMateriUnlocked,
 }) => {
   const [filter, setFilter] = useState<'all' | 'done' | 'todo'>('all');
 
-  const doneCount = MATERI_LIST.filter((m) => progress[m.id]).length;
-  const percent = Math.round((doneCount / MATERI_LIST.length) * 100);
+  const doneCount = materiList.filter((m) => progress[m.id]).length;
+  const percent = materiList.length ? Math.round((doneCount / materiList.length) * 100) : 0;
 
-  const items = MATERI_LIST.filter((m) => {
+  const items = materiList.filter((m) => {
     if (filter === 'done') return Boolean(progress[m.id]);
     if (filter === 'todo') return !progress[m.id];
     return true;
@@ -42,7 +45,7 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({
   ];
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto pt-header pb-28 px-4 min-h-app relative z-10">
+    <div className="flex flex-col w-full max-w-3xl mx-auto pt-header pb-28 md:pb-12 px-4 md:px-6 min-h-app relative z-10">
       {/* Judul */}
       <div className="flex flex-col gap-1 mt-1">
         <div className="flex items-center gap-1.5">
@@ -77,7 +80,7 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({
           </div>
           <div>
             <div className="font-serif font-bold text-[22px] text-[#502408] tracking-tight">
-              {doneCount} / {MATERI_LIST.length}
+              {doneCount} / {materiList.length}
             </div>
             <p className="text-[12px] text-[#52443d]">Telah dipelajari</p>
           </div>
@@ -183,6 +186,7 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({
         {items.map((materi) => {
           const stamp = progress[materi.id];
           const isDone = Boolean(stamp);
+          const isLocked = !isMateriUnlocked(materi.id);
 
           return (
             <div
@@ -220,22 +224,21 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({
 
                 <div className="flex flex-col gap-0.5">
                   <h2 className="font-serif font-bold text-[16px] text-[#502408] leading-snug">
-                    Materi {materi.number}: {materi.title}
+                    {materi.judul}
                   </h2>
-                  <p className="text-[12px] text-[#52443d]">{materi.subtitle}</p>
+                  <p className="text-[12px] text-[#52443d]">{materi.babJudul}</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-[#f3ede1]">
-                  <span className="inline-flex items-center gap-1 text-[#52443d] text-[12px]">
-                    <span className="material-symbols-outlined text-[14px]">menu_book</span>
-                    <span>{materi.readingMinutes} menit baca</span>
-                  </span>
+                <div className="flex items-center justify-end pt-1 border-t border-[#f3ede1]">
                   <button
                     onClick={() => onOpenMateri(materi.id)}
-                    className="bg-[#502408] text-white px-3 py-1 rounded-lg text-[12px] font-semibold hover:bg-[#6b3a1c] transition-colors shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer"
+                    disabled={isLocked}
+                    className="bg-[#502408] text-white px-3 py-1 rounded-lg text-[12px] font-semibold enabled:hover:bg-[#6b3a1c] transition-colors shadow-xs flex items-center gap-1 enabled:active:scale-95 enabled:cursor-pointer disabled:bg-[#ede8dc] disabled:text-[#52443d] disabled:cursor-not-allowed"
                   >
-                    <span>{isDone ? 'Baca Ulang' : 'Mulai Baca'}</span>
-                    <span className="material-symbols-outlined text-[14px]">play_arrow</span>
+                    <span>{isLocked ? 'Terkunci' : isDone ? 'Baca Ulang' : 'Mulai Baca'}</span>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {isLocked ? 'lock' : 'play_arrow'}
+                    </span>
                   </button>
                 </div>
               </div>

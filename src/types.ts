@@ -1,4 +1,4 @@
-export type ScreenType = 'beranda' | 'riwayat' | 'akun' | 'materi' | 'kuis' | 'masuk' | 'daftar';
+export type ScreenType = 'landing' | 'beranda' | 'riwayat' | 'akun' | 'materi' | 'kuis' | 'masuk' | 'daftar';
 
 export interface UserProfile {
   name: string;
@@ -53,26 +53,21 @@ export interface MateriVideo {
   duration?: string;
 }
 
-export interface Materi {
+/** Satu subbab dari tabel `subbab`; `isi` kosong berarti belum ada isinya. */
+export interface Subbab {
   id: string;
-  number: number;
-  era: string;
-  scope: 'Sejarah Indonesia' | 'Sejarah Dunia';
-  title: string;
-  /** Judul pendek bergaya editorial untuk hero, dipecah dua baris. */
-  displayTitle: [string, string];
-  subtitle: string;
-  year: string;
-  readingMinutes: number;
-  summary: string;
-  /** Foto utama. Tidak semua materi punya foto di dokumen sumber. */
-  hero?: MateriImage;
-  sections: MateriSection[];
-  gallery: MateriImage[];
-  /** Nilai yang dapat diteladani atau dipelajari dari peristiwa ini. */
-  values: string;
-  video: MateriVideo;
+  judul: string;
+  isi: MateriSection[];
+  babJudul: string;
 }
+
+export interface Bab {
+  id: number;
+  judul: string;
+  subbab: Subbab[];
+}
+
+export type MateriStatus = 'loading' | 'ready' | 'error';
 
 /* ============================ KUIS ============================ */
 
@@ -93,15 +88,6 @@ export interface QuizQuestion {
   correctAnswer: 'A' | 'B' | 'C' | 'D';
   explanation: string;
   keywords: string[];
-}
-
-/* ====================== PERANGKAT PEMBELAJARAN ====================== */
-
-export interface LearningActivity {
-  title: string;
-  description: string;
-  icon: string;
-  items: string[];
 }
 
 /** Catatan progres satu materi: ISO timestamp saat ditandai selesai. */

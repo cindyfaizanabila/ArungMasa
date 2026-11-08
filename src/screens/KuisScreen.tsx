@@ -94,7 +94,7 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
   if (isQuizFinished) {
     const isMastered = finalScore >= MASTERY_SCORE;
     return (
-      <div className="flex flex-col w-full max-w-md mx-auto pt-header pb-28 px-4 min-h-app relative z-10 animate-fadeIn">
+      <div className="flex flex-col w-full max-w-3xl mx-auto pt-header pb-28 md:pb-12 px-4 md:px-6 min-h-app relative z-10 animate-fadeIn">
         <div className="bg-[#fffcf6] rounded-xl p-6 shadow-md border border-[#e8e2d6] flex flex-col items-center text-center gap-4">
           <div
             className={`w-16 h-16 rounded-full flex items-center justify-center border-2 shadow-sm ${
@@ -172,7 +172,7 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
   const userChoice = selectedAnswers[currentQ.id];
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto pt-header pb-28 px-4 min-h-app relative z-10 space-y-4">
+    <div className="flex flex-col w-full max-w-3xl mx-auto pt-header pb-28 md:pb-12 px-4 md:px-6 min-h-app relative z-10 space-y-4">
       {/* 1. Header Status Kuis */}
       <header className="flex flex-col gap-2.5 bg-[#f9f3e7]/90 backdrop-blur-md p-3.5 rounded-xl border border-[#e8e2d6] shadow-xs">
         <div className="flex items-center justify-between">

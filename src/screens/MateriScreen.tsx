@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Materi, MateriBlock, MateriImage, ScreenType } from '../types';
-import { MATERI_LIST } from '../data/materiData';
-import { VideoFrame } from '../components/VideoFrame';
+import { MateriBlock, MateriImage, ScreenType, Subbab } from '../types';
 
 interface MateriScreenProps {
-  materi: Materi;
+  materi: Subbab;
+  materiList: Subbab[];
+  isMateriUnlocked: (id: string) => boolean;
   isCompleted: boolean;
   onToggleComplete: () => void;
   onNavigate: (screen: ScreenType) => void;
@@ -148,6 +148,8 @@ const BlockView: React.FC<{ block: MateriBlock; fontLarge: boolean }> = ({ block
 
 export const MateriScreen: React.FC<MateriScreenProps> = ({
   materi,
+  materiList,
+  isMateriUnlocked,
   isCompleted,
   onToggleComplete,
   onNavigate,
@@ -156,71 +158,32 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
   const [fontLarge, setFontLarge] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const index = MATERI_LIST.findIndex((m) => m.id === materi.id);
-  const prev = index > 0 ? MATERI_LIST[index - 1] : null;
-  const next = index < MATERI_LIST.length - 1 ? MATERI_LIST[index + 1] : null;
+  const index = materiList.findIndex((m) => m.id === materi.id);
+  const prev = index > 0 ? materiList[index - 1] : null;
+  const next = index < materiList.length - 1 ? materiList[index + 1] : null;
+  const isNextLocked = Boolean(next && !isMateriUnlocked(next.id));
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto pt-header pb-32 px-4 min-h-app relative z-10 space-y-5">
-      {/* ---------------------- HERO EDITORIAL ---------------------- */}
-      <section className="-mx-4 relative">
-        <div className="relative h-[232px] overflow-hidden bg-[#1f1710]">
-          {materi.hero ? (
-            <img
-              src={materi.hero.src}
-              alt={materi.hero.alt}
-              className="absolute inset-0 w-full h-full object-cover grayscale contrast-[1.15] opacity-80"
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(135deg,#ffb960_0,#ffb960_1px,transparent_1px,transparent_11px)]"
-            />
-          )}
-
-          {/* Gradasi gelap agar teks tetap terbaca di atas foto */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1f1710] via-[#1f1710]/75 to-[#1f1710]/25" />
-
-          <div className="absolute inset-0 flex flex-col justify-end p-4 gap-1.5">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-[#ffb960] text-[#2a1700] text-[10px] font-bold tracking-wider uppercase">
-                Materi {materi.number}
-              </span>
-              <span className="text-[10px] font-semibold tracking-[0.16em] uppercase text-[#e4d4bb]">
-                {materi.scope}
-              </span>
-            </div>
-
-            <h1 className="font-serif font-bold text-[30px] leading-[0.95] tracking-tight text-white uppercase">
-              {materi.displayTitle[0]}
-              <br />
-              {materi.displayTitle[1]}
-            </h1>
-
-            <p className="text-[12px] font-semibold tracking-wide text-[#ffb960]">
-              {materi.era} &bull; {materi.year}
-            </p>
-            <p className="text-[12px] text-[#e4d4bb] leading-snug max-w-[300px]">
-              {materi.subtitle}
-            </p>
-          </div>
+    <div className="flex flex-col w-full max-w-3xl mx-auto pt-header pb-32 md:pb-12 px-4 md:px-6 min-h-app relative z-10 space-y-5">
+      {/* ---------------------- JUDUL SUBBAB ---------------------- */}
+      <section className="-mx-4 md:mx-0 relative md:rounded-xl md:overflow-hidden">
+        <div className="bg-[#1f1710] px-4 md:px-6 py-8 md:py-12 flex flex-col gap-2">
+          <span className="text-[12px] font-bold tracking-wider uppercase text-[#ffb960]">
+            {materi.babJudul}
+          </span>
+          <h1 className="font-serif font-bold text-[30px] md:text-[44px] leading-tight tracking-tight text-white">
+            {materi.judul}
+          </h1>
         </div>
 
         {/* Baris alat baca */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-[#f9f3e7] border-y border-[#e8e2d6]">
-          <div className="flex items-center gap-2 text-[11px] text-[#52443d]">
-            <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-[#855300]">schedule</span>
-              {materi.readingMinutes} menit baca
+          <span className="inline-flex items-center gap-1 text-[11px] text-[#52443d]">
+            <span className="material-symbols-outlined text-[14px] text-[#855300]">
+              {isCompleted ? 'task_alt' : 'radio_button_unchecked'}
             </span>
-            <span className="text-[#d7c2b9]">|</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-[#855300]">
-                {isCompleted ? 'task_alt' : 'radio_button_unchecked'}
-              </span>
-              {isCompleted ? 'Selesai' : 'Belum selesai'}
-            </span>
-          </div>
+            {isCompleted ? 'Selesai' : 'Belum selesai'}
+          </span>
 
           <div className="flex items-center gap-1">
             <button
@@ -255,8 +218,15 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
         </div>
       </section>
 
-      {/* ---------------------- SUBBAGIAN MATERI ---------------------- */}
-      {materi.sections.map((section, i) => (
+      {/* ---------------------- ISI SUBBAB ---------------------- */}
+      {materi.isi.length === 0 && (
+        <section className="w-full rounded-xl bg-[#f9f3e7] border border-dashed border-[#d7c2b9] p-6 text-center">
+          <span className="material-symbols-outlined text-[28px] text-[#85746b]">edit_note</span>
+          <p className="text-[14px] text-[#52443d] mt-1">Isi subbab ini belum tersedia.</p>
+        </section>
+      )}
+
+      {materi.isi.map((section, i) => (
         <section
           key={section.id}
           data-reveal
@@ -277,66 +247,6 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
         </section>
       ))}
 
-      {/* ---------------------- GALERI ARSIP ---------------------- */}
-      {materi.gallery.length > 0 && (
-        <section className="-mx-4 bg-[#2a1700] py-4 flex flex-col gap-3">
-          <div className="px-4 flex items-end justify-between">
-            <div className="flex flex-col">
-              <h3 className="font-serif font-bold text-[22px] text-white uppercase leading-none tracking-tight">
-                Galeri
-              </h3>
-              <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#ffb960] mt-0.5">
-                Arsip Peristiwa
-              </span>
-            </div>
-            <span className="text-[10px] text-[#e4d4bb] flex items-center gap-1 pb-1">
-              <span className="material-symbols-outlined text-[13px]">swipe_left</span>
-              Geser
-            </span>
-          </div>
-
-          <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1">
-            {materi.gallery.map((img) => (
-              <figure
-                key={img.src + img.caption}
-                data-reveal
-                className="shrink-0 w-[150px] flex flex-col gap-1.5"
-              >
-                <div className="w-full h-[196px] rounded-xl overflow-hidden bg-[#1f1710] border border-[#ffb960]/25">
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    decoding="async"
-                    className="w-full h-full object-cover object-top grayscale contrast-[1.15] hover:grayscale-0 transition-[filter] duration-500"
-                  />
-                </div>
-                <figcaption className="text-[11px] text-[#e4d4bb] leading-snug">
-                  {img.caption}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ---------------------- NILAI YANG DIPETIK ---------------------- */}
-      <section className="w-full rounded-xl bg-[#f3ede1] border border-[#d7c2b9]/60 p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[18px] text-[#6b3a1c]">
-            volunteer_activism
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6b3a1c]">
-            Nilai yang Dapat Dipetik
-          </span>
-        </div>
-        <blockquote className="font-serif text-[19px] leading-snug text-[#502408] pl-3 border-l-2 border-[#ffb960]">
-          {materi.values}
-        </blockquote>
-      </section>
-
-      {/* ---------------------- BINGKAI VIDEO ---------------------- */}
-      <VideoFrame video={materi.video} />
-
       {/* ---------------------- AKSI & NAVIGASI ---------------------- */}
       <section className="w-full flex flex-col gap-2">
         <button
@@ -350,14 +260,14 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
           <span className="material-symbols-outlined text-[18px]">
             {isCompleted ? 'task_alt' : 'check_circle'}
           </span>
-          <span>{isCompleted ? 'Materi Telah Diselesaikan' : 'Tandai Selesai Membaca'}</span>
+          <span>{isCompleted ? 'Subbab Telah Diselesaikan' : 'Tandai Selesai Membaca'}</span>
         </button>
 
         <button
           onClick={() => onNavigate('kuis')}
           className="w-full h-[52px] rounded-xl bg-[#6b3a1c] text-white font-semibold text-[14px] flex items-center justify-center gap-2 shadow-md hover:bg-[#502408] active:scale-[0.99] transition-all cursor-pointer group"
         >
-          <span>Kerjakan Evaluasi (5 Soal)</span>
+          <span>Kerjakan Evaluasi</span>
           <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
             arrow_forward
           </span>
@@ -377,26 +287,27 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
                 Sebelumnya
               </span>
               <span className="text-[12px] font-semibold text-[#502408] truncate">
-                {prev ? prev.title : '—'}
+                {prev ? prev.judul : '—'}
               </span>
             </span>
           </button>
 
           <button
-            disabled={!next}
+            disabled={!next || isNextLocked}
             onClick={() => next && onOpenMateri(next.id)}
+            title={isNextLocked ? 'Tandai subbab ini selesai untuk membuka subbab berikutnya' : undefined}
             className="h-14 px-3 rounded-xl bg-[#fffcf6] border border-[#e8e2d6] flex items-center gap-2 text-right transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[#f9f3e7] enabled:cursor-pointer"
           >
             <span className="flex flex-col min-w-0 ml-auto">
               <span className="text-[10px] uppercase tracking-wider text-[#85746b] font-semibold">
-                Berikutnya
+                {isNextLocked ? 'Terkunci' : 'Berikutnya'}
               </span>
               <span className="text-[12px] font-semibold text-[#502408] truncate">
-                {next ? next.title : '—'}
+                {isNextLocked ? 'Selesaikan subbab ini' : next ? next.judul : '—'}
               </span>
             </span>
             <span className="material-symbols-outlined text-[18px] text-[#855300] shrink-0">
-              arrow_forward
+              {isNextLocked ? 'lock' : 'arrow_forward'}
             </span>
           </button>
         </div>

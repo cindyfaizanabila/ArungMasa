@@ -4,6 +4,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // GitHub Pages menaruh situs di subfolder sesuai nama repo.
+    base: '/ArungMasa/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

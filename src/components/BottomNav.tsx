@@ -6,29 +6,18 @@ interface BottomNavProps {
   onNavigate: (screen: ScreenType) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate }) => {
-  const tabs = [
-    {
-      id: 'beranda' as ScreenType,
-      label: 'Beranda',
-      icon: 'cottage',
-    },
-    {
-      id: 'riwayat' as ScreenType,
-      label: 'Riwayat',
-      icon: 'history',
-    },
-    {
-      id: 'akun' as ScreenType,
-      label: 'Akun',
-      icon: 'account_circle',
-    },
-  ];
+export const NAV_TABS: { id: ScreenType; label: string; icon: string }[] = [
+  { id: 'beranda', label: 'Beranda', icon: 'cottage' },
+  { id: 'riwayat', label: 'Riwayat', icon: 'history' },
+  { id: 'akun', label: 'Akun', icon: 'account_circle' },
+];
 
+/** Navigasi bawah untuk layar sempit; di layar lebar digantikan menu di header. */
+export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate }) => {
   return (
-    <nav className="fixed bottom-0 inset-x-0 w-full z-50 pb-safe bg-[#fff9ed]/95 backdrop-blur-xl border-t border-[#e8e2d6]/70 shadow-[0_-2px_12px_rgba(42,30,20,0.05)]">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 w-full z-50 pb-safe bg-[#fff9ed]/95 backdrop-blur-xl border-t border-[#e8e2d6]/70 shadow-[0_-2px_12px_rgba(42,30,20,0.05)]">
       <div className="h-16 max-w-md mx-auto px-4 flex items-center justify-around">
-        {tabs.map((tab) => {
+        {NAV_TABS.map((tab) => {
           const isActive = currentScreen === tab.id;
           return (
             <button
