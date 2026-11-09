@@ -40,17 +40,24 @@ export interface MateriSection {
   blocks: MateriBlock[];
 }
 
-/**
- * Video pembelajaran di bagian bawah materi. `url` dikosongkan selama
- * videonya belum tersedia; bingkai pemutar tetap tampil sebagai tempat.
- */
-export interface MateriVideo {
-  title: string;
-  description: string;
-  /** Kosongkan bila video belum ada. YouTube atau berkas video langsung. */
-  url?: string;
-  provider?: 'youtube' | 'file';
-  duration?: string;
+/** Pertanyaan yang menghentikan video pada detik tertentu. */
+export interface VideoCheckpoint {
+  /** Detik ke berapa video berhenti. */
+  at: number;
+  question: string;
+  options: { key: 'A' | 'B' | 'C' | 'D'; text: string }[];
+  correctAnswer: 'A' | 'B' | 'C' | 'D';
+  /** Ditampilkan setelah pertanyaan dijawab benar. */
+  explanation?: string;
+}
+
+/** Video interaktif sebuah subbab, disimpan di kolom `subbab.video`. */
+export interface SubbabVideo {
+  provider: 'youtube' | 'file';
+  /** Tautan YouTube (atau ID-nya), atau tautan berkas video langsung. */
+  url: string;
+  title?: string;
+  checkpoints: VideoCheckpoint[];
 }
 
 /** Satu subbab dari tabel `subbab`; `isi` kosong berarti belum ada isinya. */
@@ -58,6 +65,8 @@ export interface Subbab {
   id: string;
   judul: string;
   isi: MateriSection[];
+  video: SubbabVideo | null;
+  babId: number;
   babJudul: string;
 }
 
@@ -73,11 +82,10 @@ export type MateriStatus = 'loading' | 'ready' | 'error';
 
 export interface QuizQuestion {
   id: number;
-  materiId: string;
   conceptTag: string;
   difficulty: string;
   question: string;
-  sourceDoc: {
+  sourceDoc?: {
     title: string;
     text: string;
   };
@@ -96,6 +104,7 @@ export interface MateriProgress {
 }
 
 export interface QuizResult {
+  babId: number;
   score: number;
   xp: number;
   correctCount: number;

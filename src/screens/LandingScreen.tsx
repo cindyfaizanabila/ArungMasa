@@ -1,12 +1,14 @@
 import React from 'react';
 import { Bab, MateriStatus, ScreenType } from '../types';
-import { ASSET_IMAGES, QUIZ_QUESTIONS } from '../data/mockData';
+import { ASSET_IMAGES } from '../data/mockData';
+import { totalQuizQuestions } from '../data/kuis';
 import { COURSE } from '../data/course';
 
 interface LandingScreenProps {
   onNavigate: (screen: ScreenType) => void;
   babList: Bab[];
   materiStatus: MateriStatus;
+  isLoggedIn: boolean;
 }
 
 const STEPS = [
@@ -36,13 +38,14 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   onNavigate,
   babList,
   materiStatus,
+  isLoggedIn,
 }) => {
   const subbabCount = babList.reduce((sum, b) => sum + b.subbab.length, 0);
 
   const facts = [
     { value: babList.length, label: 'bab' },
     { value: subbabCount, label: 'subbab' },
-    { value: QUIZ_QUESTIONS.length, label: 'soal evaluasi' },
+    { value: totalQuizQuestions(), label: 'soal evaluasi' },
   ];
 
   return (
@@ -71,17 +74,19 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
                 Cara Belajar
               </a>
             </nav>
+            {!isLoggedIn && (
+              <button
+                onClick={() => onNavigate('masuk')}
+                className="h-10 px-3 rounded-lg text-[14px] font-semibold text-[#502408] hover:bg-[#f3ede1] transition-colors cursor-pointer"
+              >
+                Masuk
+              </button>
+            )}
             <button
-              onClick={() => onNavigate('masuk')}
-              className="h-10 px-3 rounded-lg text-[14px] font-semibold text-[#502408] hover:bg-[#f3ede1] transition-colors cursor-pointer"
-            >
-              Masuk
-            </button>
-            <button
-              onClick={() => onNavigate('beranda')}
+              onClick={() => onNavigate(isLoggedIn ? 'beranda' : 'daftar')}
               className="h-10 px-4 rounded-lg bg-[#6b3a1c] hover:bg-[#502408] text-white text-[14px] font-semibold transition-colors cursor-pointer"
             >
-              Mulai
+              {isLoggedIn ? 'Lanjut Belajar' : 'Daftar'}
             </button>
           </div>
         </div>
@@ -106,10 +111,10 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
 
             <div className="flex flex-wrap gap-3 mt-8">
               <button
-                onClick={() => onNavigate('beranda')}
+                onClick={() => onNavigate(isLoggedIn ? 'beranda' : 'daftar')}
                 className="h-[52px] px-6 rounded-xl bg-[#ffb960] hover:bg-[#ffcb88] text-[#2a1700] font-semibold text-[15px] inline-flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer group"
               >
-                Mulai Belajar
+                {isLoggedIn ? 'Lanjut Belajar' : 'Daftar dan Mulai Belajar'}
                 <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
                   arrow_forward
                 </span>
@@ -155,18 +160,29 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             {babList.map((bab) => (
               <li key={bab.id} className="flex">
                 <button
-                  onClick={() => onNavigate('beranda')}
+                  onClick={() => onNavigate(isLoggedIn ? 'beranda' : 'masuk')}
                   className="w-full text-left rounded-xl bg-[#fffcf6] border border-[#e7dcc8] p-4 flex items-start gap-3 hover:border-[#855300]/50 hover:shadow-md transition-all cursor-pointer"
                 >
                   <span className="font-serif font-bold text-[28px] leading-none text-[#855300] w-9 shrink-0">
                     {bab.id}
                   </span>
-                  <span className="flex flex-col gap-1 min-w-0">
+                  <span className="flex flex-col gap-1 min-w-0 flex-1">
                     <span className="font-serif font-bold text-[17px] leading-snug text-[#502408]">
                       {bab.judul}
                     </span>
-                    <span className="text-[13px] text-[#52443d]">{bab.subbab.length} subbab</span>
+                    <span className="text-[13px] text-[#52443d]">
+                      {bab.subbab.length} subbab
+                      {!isLoggedIn && ' · Masuk untuk membuka'}
+                    </span>
                   </span>
+                  {!isLoggedIn && (
+                    <span
+                      aria-hidden="true"
+                      className="material-symbols-outlined text-[18px] text-[#85746b] shrink-0"
+                    >
+                      lock
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
@@ -194,6 +210,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
         </section>
 
         {/* ---------------------- AJAKAN AKHIR ---------------------- */}
+        {!isLoggedIn && (
         <section className="max-w-6xl mx-auto px-4 md:px-6 py-14 md:py-20">
           <div className="rounded-xl bg-[#2a1700] px-6 py-10 md:px-12 md:py-14 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
@@ -220,6 +237,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             </div>
           </div>
         </section>
+        )}
       </main>
 
       <footer className="border-t border-[#e7dcc8]">

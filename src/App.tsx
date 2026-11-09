@@ -6,12 +6,13 @@ import {
   MateriStatus,
   QuizResult,
   ScreenType,
+  SubbabVideo,
   UserProfile,
 } from './types';
 import { INITIAL_USER } from './data/mockData';
+import { QUIZ_BY_BAB } from './data/kuis';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
-import { ScreenSwitcher } from './components/ScreenSwitcher';
 import { useScrollReveal } from './hooks/useScrollReveal';
 import { LandingScreen } from './screens/LandingScreen';
 import { BerandaScreen } from './screens/BerandaScreen';
@@ -25,6 +26,9 @@ import { supabase } from './lib/supabase';
 
 const scrollAppToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
+/** Layar yang hanya bisa dibuka setelah masuk. */
+const PROTECTED_SCREENS: ScreenType[] = ['beranda', 'materi', 'kuis', 'riwayat', 'akun'];
+
 const GUEST_USER: UserProfile = {
   ...INITIAL_USER,
   name: 'Penjelajah', nisn: '', school: '', grade: '',
@@ -36,38 +40,65 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('landing');
   const [user, setUser] = useState<UserProfile>(GUEST_USER);
   const [userId, setUserId] = useState<string | null>(null);
+  /** Benar setelah status login selesai dibaca dari sesi tersimpan. */
+  const [authReady, setAuthReady] = useState(false);
   const [babList, setBabList] = useState<Bab[]>([]);
   const [materiStatus, setMateriStatus] = useState<MateriStatus>('loading');
   const [activeMateriId, setActiveMateriId] = useState<string>('');
   /** id materi -> ISO timestamp saat ditandai selesai. */
   const [progress, setProgress] = useState<MateriProgress>({});
-  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  /** Hasil evaluasi, terbaru lebih dulu. */
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [activeQuizBabId, setActiveQuizBabId] = useState<number | null>(null);
 
   useScrollReveal();
 
-  // Mengambil daftar bab dan subbab; terbuka juga untuk tamu.
+  // Judul bab dan subbab tampil di landing untuk semua orang; isi subbab hanya
+  // diminta setelah login (database juga menolaknya untuk yang belum masuk).
   useEffect(() => {
+    if (!authReady) return;
+
     let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
+    setMateriStatus('loading');
+    setBabList([]);
+    interface SubbabRow {
+      id: string;
+      judul: string;
+      isi?: MateriSection[];
+      video?: SubbabVideo | null;
+    }
+    interface BabRow {
+      id: number;
+      judul: string;
+      subbab: SubbabRow[];
+    }
+    const fetchBab = (subbabColumns: string) =>
+      supabase
         .from('bab')
-        .select('id, judul, subbab(id, urutan, judul, isi)')
+        .select(`id, judul, subbab(${subbabColumns})`)
         .order('id')
         .order('urutan', { referencedTable: 'subbab' });
+
+    (async () => {
+      let result = await fetchBab(userId ? 'id, urutan, judul, isi, video' : 'id, urutan, judul');
+      // Kolom `video` baru ada setelah SQL-nya dijalankan; tanpa itu, muat tanpa video.
+      if (result.error && userId) result = await fetchBab('id, urutan, judul, isi');
       if (cancelled) return;
 
-      if (error) {
+      if (result.error) {
         setMateriStatus('error');
         return;
       }
       setBabList(
-        data.map((bab) => ({
+        (result.data as unknown as BabRow[]).map((bab) => ({
           id: bab.id,
           judul: bab.judul,
           subbab: bab.subbab.map((s) => ({
             id: s.id,
             judul: s.judul,
-            isi: s.isi as MateriSection[],
+            isi: s.isi ?? [],
+            video: s.video ?? null,
+            babId: bab.id,
             babJudul: bab.judul,
           })),
         }))
@@ -78,11 +109,14 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authReady, userId]);
 
   // Memantau status login.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user.id ?? null);
+      setAuthReady(true);
+    });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -91,12 +125,23 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Mengambil data siswa setelah login; data tamu dipakai bila belum login.
+  // Berhasil masuk: keluar dari layar masuk/daftar. Belum masuk atau sesi habis:
+  // layar yang dilindungi diganti dengan layar masuk.
+  useEffect(() => {
+    if (!authReady) return;
+    if (userId && (currentScreen === 'masuk' || currentScreen === 'daftar')) {
+      setCurrentScreen('beranda');
+    } else if (!userId && PROTECTED_SCREENS.includes(currentScreen)) {
+      setCurrentScreen('masuk');
+    }
+  }, [authReady, userId, currentScreen]);
+
+  // Mengambil data siswa setelah login; dikosongkan saat keluar.
   useEffect(() => {
     if (!userId) {
       setUser(GUEST_USER);
       setProgress({});
-      setQuizResult(null);
+      setQuizResults([]);
       return;
     }
 
@@ -105,19 +150,20 @@ export default function App() {
       const [profile, materi, quiz] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('materi_progress').select('materi_id, completed_at'),
+        // Hasil lama tanpa bab berasal dari evaluasi sebelum per-bab, jadi dilewati.
         supabase
           .from('quiz_results')
           .select('*')
-          .order('completed_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .not('bab_id', 'is', null)
+          .order('completed_at', { ascending: false }),
       ]);
       if (cancelled) return;
 
-      if (profile.error || materi.error || quiz.error) {
+      if (profile.error || materi.error) {
         alert('Data akun gagal dimuat. Muat ulang halaman untuk mencoba lagi.');
         return;
       }
+      if (quiz.error) console.warn('Hasil evaluasi gagal dimuat:', quiz.error.message);
 
       const p = profile.data;
       setUser({
@@ -134,14 +180,15 @@ export default function App() {
         reminderTime: `${p.reminder_time.slice(0, 5).replace(':', '.')} WIB`,
       });
       setProgress(Object.fromEntries(materi.data.map((m) => [m.materi_id, m.completed_at])));
-      setQuizResult(
-        quiz.data && {
-          score: quiz.data.score,
-          xp: quiz.data.xp,
-          correctCount: quiz.data.correct_count,
-          totalQuestions: quiz.data.total_questions,
-          completedAt: quiz.data.completed_at,
-        }
+      setQuizResults(
+        (quiz.data ?? []).map((r) => ({
+          babId: r.bab_id,
+          score: r.score,
+          xp: r.xp,
+          correctCount: r.correct_count,
+          totalQuestions: r.total_questions,
+          completedAt: r.completed_at,
+        }))
       );
     })();
 
@@ -166,9 +213,31 @@ export default function App() {
     ? materiList.find((m) => m.id === activeMateriId)
     : materiList[0];
   const isActiveMateriDone = Boolean(activeMateri && progress[activeMateri.id]);
+  const isLoggedIn = Boolean(userId);
+
+  // Subbab pertama yang belum selesai; selalu terbuka karena yang sebelumnya sudah selesai.
+  const nextMateri = materiList.find((m) => !progress[m.id]);
+
+  const hasQuiz = (babId: number) => (QUIZ_BY_BAB[babId]?.length ?? 0) > 0;
+  const isBabComplete = (babId: number) =>
+    Boolean(
+      babList.find((b) => b.id === babId)?.subbab.every((s) => progress[s.id])
+    );
+
+  // Evaluasi bab terbuka di subbab terakhir, setelah seluruh subbab bab itu selesai.
+  const activeBab = babList.find((b) => b.id === activeMateri?.babId);
+  const isLastInBab = Boolean(
+    activeBab && activeBab.subbab[activeBab.subbab.length - 1].id === activeMateri?.id
+  );
+  const quizState: 'none' | 'pending' | 'ready' =
+    !activeBab || !isLastInBab || !hasQuiz(activeBab.id)
+      ? 'none'
+      : isBabComplete(activeBab.id)
+        ? 'ready'
+        : 'pending';
 
   const handleNavigate = (screen: ScreenType) => {
-    setCurrentScreen(screen);
+    setCurrentScreen(PROTECTED_SCREENS.includes(screen) && !isLoggedIn ? 'masuk' : screen);
     scrollAppToTop();
   };
 
@@ -207,26 +276,20 @@ export default function App() {
     if (error) alert('Progres gagal disimpan. Coba lagi.');
   };
 
-  const handleUpdateUser = async (updated: Partial<UserProfile>) => {
-    setUser((prev) => ({ ...prev, ...updated }));
-    if (!userId) return;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        daily_target_minutes: updated.dailyTargetMinutes,
-        reminder_enabled: updated.reminderEnabled,
-      })
-      .eq('id', userId);
-    if (error) alert('Pengaturan gagal disimpan. Coba lagi.');
+  const handleOpenQuiz = (babId: number) => {
+    if (!hasQuiz(babId) || !isBabComplete(babId)) return;
+    setActiveQuizBabId(babId);
+    setCurrentScreen('kuis');
+    scrollAppToTop();
   };
 
   const handleCompleteQuiz = async (result: QuizResult) => {
-    setQuizResult(result);
+    setQuizResults((prev) => [result, ...prev]);
     if (!userId) return;
 
     const { error } = await supabase.from('quiz_results').insert({
       user_id: userId,
+      bab_id: result.babId,
       score: result.score,
       xp: result.xp,
       correct_count: result.correctCount,
@@ -249,8 +312,8 @@ export default function App() {
         };
       case 'kuis':
         return {
-          titleOverride: 'Evaluasi Pembelajaran',
-          subtitleOverride: 'Lima Peristiwa Penting',
+          titleOverride: 'Evaluasi Bab',
+          subtitleOverride: babList.find((b) => b.id === activeQuizBabId)?.judul,
           onBack: () => handleNavigate('beranda'),
         };
       case 'masuk':
@@ -300,9 +363,6 @@ export default function App() {
           currentScreen={currentScreen}
           onNavigate={handleNavigate}
           showBackButton={showBackButton}
-          rightActions={
-            <ScreenSwitcher currentScreen={currentScreen} onNavigate={handleNavigate} />
-          }
           {...getHeaderProps()}
         />
       )}
@@ -312,19 +372,22 @@ export default function App() {
           onNavigate={handleNavigate}
           babList={babList}
           materiStatus={materiStatus}
+          isLoggedIn={isLoggedIn}
         />
       )}
 
       <main className="relative z-10 w-full flex flex-col items-center">
         {currentScreen === 'beranda' && (
           <BerandaScreen
-            onNavigate={handleNavigate}
             onOpenMateri={handleOpenMateri}
             isMateriUnlocked={isMateriUnlocked}
+            onOpenQuiz={handleOpenQuiz}
             userName={user.name}
             progress={progress}
+            quizResults={quizResults}
             babList={babList}
             materiStatus={materiStatus}
+            nextMateri={nextMateri}
           />
         )}
 
@@ -336,42 +399,56 @@ export default function App() {
 
         {currentScreen === 'materi' && activeMateri && (
           <MateriScreen
+            key={activeMateri.id}
             materi={activeMateri}
             materiList={materiList}
             isMateriUnlocked={isMateriUnlocked}
             isCompleted={isActiveMateriDone}
             onToggleComplete={handleToggleMateriComplete}
-            onNavigate={handleNavigate}
             onOpenMateri={handleOpenMateri}
+            quizState={quizState}
+            onOpenQuiz={() => activeBab && handleOpenQuiz(activeBab.id)}
           />
         )}
 
-        {currentScreen === 'kuis' && (
-          <KuisScreen onNavigate={handleNavigate} onCompleteQuiz={handleCompleteQuiz} />
+        {currentScreen === 'kuis' && activeQuizBabId !== null && hasQuiz(activeQuizBabId) && (
+          <KuisScreen
+            key={activeQuizBabId}
+            babId={activeQuizBabId}
+            babJudul={babList.find((b) => b.id === activeQuizBabId)?.judul ?? ''}
+            questions={QUIZ_BY_BAB[activeQuizBabId]}
+            onNavigate={handleNavigate}
+            onCompleteQuiz={handleCompleteQuiz}
+          />
+        )}
+
+        {currentScreen === 'kuis' && (activeQuizBabId === null || !hasQuiz(activeQuizBabId)) && (
+          <p className="pt-header px-4 text-[14px] text-[#52443d] text-center">
+            Pilih evaluasi dari daftar bab di Beranda.
+          </p>
         )}
 
         {currentScreen === 'riwayat' && (
           <RiwayatScreen
             onNavigate={handleNavigate}
             onOpenMateri={handleOpenMateri}
+            onOpenQuiz={handleOpenQuiz}
             progress={progress}
-            quizResult={quizResult}
+            quizResults={quizResults}
+            babList={babList}
             materiList={materiList}
-            isMateriUnlocked={isMateriUnlocked}
           />
         )}
 
         {currentScreen === 'akun' && (
           <AkunScreen
             user={user}
-            onUpdateUser={handleUpdateUser}
-            onNavigate={handleNavigate}
             progress={progress}
-            quizResult={quizResult}
+            quizResults={quizResults}
             materiList={materiList}
             onLogout={async () => {
               await supabase.auth.signOut();
-              handleNavigate('masuk');
+              handleNavigate('landing');
             }}
           />
         )}

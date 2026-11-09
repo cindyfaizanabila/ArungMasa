@@ -10,7 +10,6 @@ interface HeaderProps {
   subtitleOverride?: string;
   showBackButton?: boolean;
   onBack?: () => void;
-  rightActions?: React.ReactNode;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +19,6 @@ export const Header: React.FC<HeaderProps> = ({
   subtitleOverride,
   showBackButton,
   onBack,
-  rightActions,
 }) => {
   const getScreenSubtitle = () => {
     switch (currentScreen) {
@@ -87,7 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        <nav aria-label="Navigasi utama" className="hidden md:flex items-center gap-1 ml-auto">
+        <nav
+          aria-label="Navigasi utama"
+          className={`${
+            currentScreen === 'masuk' || currentScreen === 'daftar' ? 'hidden' : 'hidden md:flex'
+          } items-center gap-1 ml-auto`}
+        >
           {NAV_TABS.map((tab) => {
             const isActive = currentScreen === tab.id;
             return (
@@ -107,19 +110,6 @@ export const Header: React.FC<HeaderProps> = ({
             );
           })}
         </nav>
-
-        <div className="flex items-center gap-2">
-          {rightActions}
-
-          {/* User Profile Avatar Pill */}
-          <button
-            onClick={() => onNavigate('akun')}
-            aria-label="Profil Pengguna"
-            className="w-8 h-8 rounded-full bg-[#502408] text-white flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-transform cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">person</span>
-          </button>
-        </div>
       </div>
     </header>
   );

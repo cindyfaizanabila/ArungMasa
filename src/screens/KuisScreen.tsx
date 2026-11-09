@@ -1,25 +1,29 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { QuizResult, ScreenType } from '../types';
-import { QUIZ_QUESTIONS } from '../data/mockData';
+import { QuizQuestion, QuizResult, ScreenType } from '../types';
 
 const XP_PER_CORRECT_ANSWER = 10;
 const SECONDS_PER_QUESTION = 45;
-const QUIZ_DURATION_SECONDS = QUIZ_QUESTIONS.length * SECONDS_PER_QUESTION;
 const MASTERY_SCORE = 80;
 
 interface KuisScreenProps {
+  babId: number;
+  babJudul: string;
+  questions: QuizQuestion[];
   onNavigate: (screen: ScreenType) => void;
   onCompleteQuiz: (result: QuizResult) => void;
 }
 
 export const KuisScreen: React.FC<KuisScreenProps> = ({
+  babId,
+  babJudul,
+  questions,
   onNavigate,
   onCompleteQuiz,
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<{ [questionId: number]: 'A' | 'B' | 'C' | 'D' }>({});
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<{ [questionId: number]: boolean }>({});
-  const [secondsLeft, setSecondsLeft] = useState(QUIZ_DURATION_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(questions.length * SECONDS_PER_QUESTION);
   const [xpEarned, setXpEarned] = useState(0);
   const [isQuizFinished, setIsQuizFinished] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
@@ -45,25 +49,26 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
-  const currentQ = QUIZ_QUESTIONS[currentIdx];
-  const totalQuestions = QUIZ_QUESTIONS.length;
+  const currentQ = questions[currentIdx];
+  const totalQuestions = questions.length;
   const progressPercent = ((currentIdx + 1) / totalQuestions) * 100;
 
   const finishQuiz = useCallback(() => {
-    const correctCount = QUIZ_QUESTIONS.filter(
+    const correctCount = questions.filter(
       (q) => selectedAnswers[q.id] === q.correctAnswer
     ).length;
     const score = Math.round((correctCount / totalQuestions) * 100);
     setFinalScore(score);
     setIsQuizFinished(true);
     onCompleteQuiz({
+      babId,
       score,
       xp: xpEarned,
       correctCount,
       totalQuestions,
       completedAt: new Date().toISOString(),
     });
-  }, [selectedAnswers, totalQuestions, xpEarned, onCompleteQuiz]);
+  }, [babId, questions, selectedAnswers, totalQuestions, xpEarned, onCompleteQuiz]);
 
   // Waktu habis: tutup kuis dengan skor yang sudah terkumpul.
   useEffect(() => {
@@ -110,14 +115,14 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
 
           <div className="flex flex-col gap-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#855300]">
-              Hasil Evaluasi Pembelajaran
+              Hasil Evaluasi Bab {babId}
             </span>
             <h2 className="font-serif font-bold text-[24px] text-[#502408]">
-              {isMastered ? 'Kurator Unggul Sejarah' : 'Arsip Perlu Ditelaah Ulang'}
+              {isMastered ? 'Materi Dikuasai' : 'Perlu Dipelajari Lagi'}
             </h2>
             <p className="text-[13px] text-[#52443d]">
               {isMastered
-                ? 'Selamat! Kamu telah memahami latar belakang, tokoh, dan dampak kelima peristiwa penting sejarah Indonesia dan dunia.'
+                ? `Selamat! Kamu sudah menguasai materi ${babJudul}.`
                 : 'Sebagian jawaban belum tepat. Baca ulang materinya, lalu kerjakan evaluasi ini lagi.'}
             </p>
           </div>
@@ -141,9 +146,9 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
             </div>
             <div className="flex flex-col">
               <span className="text-[12px] font-bold text-[#502408]">
-                Lencana Terbuka: Penelaah Sejarah
+                Lencana Terbuka: Kurator Kritis
               </span>
-              <span className="text-[11px] text-[#52443d]">Tersimpan dalam Kartu Induk Siswa</span>
+              <span className="text-[11px] text-[#52443d]">Lihat koleksimu di halaman Akun</span>
             </div>
           </div>
           )}
@@ -187,11 +192,9 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
             </button>
             <div className="flex flex-col">
               <span className="text-[11px] text-[#52443d] font-semibold uppercase tracking-wider">
-                Evaluasi Pembelajaran
+                Evaluasi Bab {babId}
               </span>
-              <span className="text-[13px] text-[#502408] font-bold">
-                Lima Peristiwa Penting
-              </span>
+              <span className="text-[13px] text-[#502408] font-bold">{babJudul}</span>
             </div>
           </div>
 
@@ -243,18 +246,20 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
           {currentQ.question}
         </h2>
 
-        {/* Sumber Primer Arsip Dokumen Pendukung */}
-        <div className="relative bg-[#f9f3e7] border border-[#e8e2d6] rounded-lg p-3 flex flex-col gap-1 overflow-hidden">
-          <div className="flex items-center gap-1.5 text-[#855300]">
-            <span className="material-symbols-outlined text-[15px]">menu_book</span>
-            <span className="text-[11px] font-bold uppercase tracking-wider">
-              {currentQ.sourceDoc.title}
-            </span>
+        {/* Kutipan pendukung, bila soal memilikinya */}
+        {currentQ.sourceDoc && (
+          <div className="relative bg-[#f9f3e7] border border-[#e8e2d6] rounded-lg p-3 flex flex-col gap-1 overflow-hidden">
+            <div className="flex items-center gap-1.5 text-[#855300]">
+              <span className="material-symbols-outlined text-[15px]">menu_book</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                {currentQ.sourceDoc.title}
+              </span>
+            </div>
+            <p className="text-[13px] text-[#52443d] italic leading-relaxed">
+              {currentQ.sourceDoc.text}
+            </p>
           </div>
-          <p className="text-[13px] text-[#52443d] italic leading-relaxed">
-            {currentQ.sourceDoc.text}
-          </p>
-        </div>
+        )}
 
         {/* 3. Pilihan Jawaban Interaktif */}
         <div className="flex flex-col gap-2.5 pt-1">
@@ -342,7 +347,7 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
                 </h3>
               </div>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#ede8dc] text-[#52443d] uppercase tracking-wider">
-                Telaah Kurator
+                Pembahasan
               </span>
             </div>
 
@@ -368,7 +373,7 @@ export const KuisScreen: React.FC<KuisScreenProps> = ({
           <span className="material-symbols-outlined text-[#855300] text-[18px]">checklist_rtl</span>
           <span className="text-[12px] font-medium">
             {totalQuestions - 1 - currentIdx > 0
-              ? `${totalQuestions - 1 - currentIdx} Pertanyaan tersisa sebelum ringkasan nilai evaluasi.`
+              ? `${totalQuestions - 1 - currentIdx} pertanyaan tersisa sebelum hasil evaluasi.`
               : 'Pertanyaan terakhir! Selesaikan untuk melihat hasil evaluasi.'}
           </span>
         </div>

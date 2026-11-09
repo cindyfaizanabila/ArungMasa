@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MateriBlock, MateriImage, ScreenType, Subbab } from '../types';
+import React, { useCallback, useState } from 'react';
+import { MateriBlock, MateriImage, Subbab } from '../types';
+import { VideoQuiz } from '../components/VideoQuiz';
 
 interface MateriScreenProps {
   materi: Subbab;
@@ -7,8 +8,10 @@ interface MateriScreenProps {
   isMateriUnlocked: (id: string) => boolean;
   isCompleted: boolean;
   onToggleComplete: () => void;
-  onNavigate: (screen: ScreenType) => void;
   onOpenMateri: (id: string) => void;
+  /** 'none': bukan subbab terakhir atau bab belum punya soal; 'pending': belum semua selesai. */
+  quizState: 'none' | 'pending' | 'ready';
+  onOpenQuiz: () => void;
 }
 
 /* ----------------------------- Blok isi materi ----------------------------- */
@@ -152,11 +155,19 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
   isMateriUnlocked,
   isCompleted,
   onToggleComplete,
-  onNavigate,
   onOpenMateri,
+  quizState,
+  onOpenQuiz,
 }) => {
   const [fontLarge, setFontLarge] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [videoDone, setVideoDone] = useState(false);
+  const handleVideoCompleted = useCallback(() => setVideoDone(true), []);
+
+  const hasContent = materi.isi.length > 0 || Boolean(materi.video);
+  // Video berpertanyaan harus diselesaikan dulu sebelum subbab bisa ditandai selesai.
+  const waitingForVideo = Boolean(materi.video) && !videoDone && !isCompleted;
+  // Subbab tanpa isi tidak bisa ditandai selesai; yang sudah telanjur selesai boleh dibatalkan.
+  const canToggleComplete = (hasContent && !waitingForVideo) || isCompleted;
 
   const index = materiList.findIndex((m) => m.id === materi.id);
   const prev = index > 0 ? materiList[index - 1] : null;
@@ -198,28 +209,15 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
             >
               <span className="material-symbols-outlined text-[17px]">text_fields</span>
             </button>
-            <button
-              onClick={() => setIsBookmarked(!isBookmarked)}
-              aria-label="Simpan markah"
-              className={`w-8 h-8 rounded-lg border border-[#e8e2d6] flex items-center justify-center transition-colors cursor-pointer ${
-                isBookmarked
-                  ? 'bg-[#ffddb8] text-[#855300]'
-                  : 'bg-[#fffcf6] text-[#502408] hover:bg-[#ede8dc]'
-              }`}
-            >
-              <span
-                className="material-symbols-outlined text-[17px]"
-                style={{ fontVariationSettings: isBookmarked ? "'FILL' 1" : "'FILL' 0" }}
-              >
-                {isBookmarked ? 'bookmark' : 'bookmark_add'}
-              </span>
-            </button>
           </div>
         </div>
       </section>
 
+      {/* ---------------------- VIDEO INTERAKTIF ---------------------- */}
+      {materi.video && <VideoQuiz video={materi.video} onCompleted={handleVideoCompleted} />}
+
       {/* ---------------------- ISI SUBBAB ---------------------- */}
-      {materi.isi.length === 0 && (
+      {!hasContent && (
         <section className="w-full rounded-xl bg-[#f9f3e7] border border-dashed border-[#d7c2b9] p-6 text-center">
           <span className="material-symbols-outlined text-[28px] text-[#85746b]">edit_note</span>
           <p className="text-[14px] text-[#52443d] mt-1">Isi subbab ini belum tersedia.</p>
@@ -251,27 +249,49 @@ export const MateriScreen: React.FC<MateriScreenProps> = ({
       <section className="w-full flex flex-col gap-2">
         <button
           onClick={onToggleComplete}
-          className={`w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer ${
+          disabled={!canToggleComplete}
+          className={`w-full h-12 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-all shadow-xs enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
             isCompleted
               ? 'bg-[#cfecae] text-[#0e2000] border border-[#20360a]/25'
-              : 'bg-[#f9f3e7] text-[#502408] border border-[#e8e2d6] hover:bg-[#ede8dc]'
+              : 'bg-[#f9f3e7] text-[#502408] border border-[#e8e2d6] enabled:hover:bg-[#ede8dc]'
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">
-            {isCompleted ? 'task_alt' : 'check_circle'}
+            {isCompleted
+              ? 'task_alt'
+              : waitingForVideo
+                ? 'play_circle'
+                : hasContent
+                  ? 'check_circle'
+                  : 'hourglass_empty'}
           </span>
-          <span>{isCompleted ? 'Subbab Telah Diselesaikan' : 'Tandai Selesai Membaca'}</span>
+          <span>
+            {isCompleted
+              ? 'Subbab Telah Diselesaikan'
+              : waitingForVideo
+                ? 'Selesaikan video dan pertanyaannya dulu'
+                : hasContent
+                  ? 'Tandai Selesai'
+                  : 'Isi subbab belum tersedia'}
+          </span>
         </button>
 
-        <button
-          onClick={() => onNavigate('kuis')}
-          className="w-full h-[52px] rounded-xl bg-[#6b3a1c] text-white font-semibold text-[14px] flex items-center justify-center gap-2 shadow-md hover:bg-[#502408] active:scale-[0.99] transition-all cursor-pointer group"
-        >
-          <span>Kerjakan Evaluasi</span>
-          <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
-            arrow_forward
-          </span>
-        </button>
+        {quizState === 'ready' && (
+          <button
+            onClick={onOpenQuiz}
+            className="w-full h-[52px] rounded-xl bg-[#6b3a1c] text-white font-semibold text-[14px] flex items-center justify-center gap-2 shadow-md hover:bg-[#502408] active:scale-[0.99] transition-all cursor-pointer group"
+          >
+            <span>Kerjakan Evaluasi Bab</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">
+              arrow_forward
+            </span>
+          </button>
+        )}
+        {quizState === 'pending' && (
+          <p className="text-[12px] text-[#52443d] text-center">
+            Ini subbab terakhir. Selesaikan semua subbab di bab ini untuk membuka evaluasinya.
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button

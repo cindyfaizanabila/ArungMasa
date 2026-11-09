@@ -13,15 +13,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
   const [selectedGrade, setSelectedGrade] = useState('Kelas 11');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed) {
-      alert('Mohon setujui Ketentuan Penggunaan dan Kebijakan Privasi.');
-      return;
-    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
@@ -36,9 +31,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
     if (!data.session) {
       alert('Cek emailmu untuk konfirmasi akun, lalu masuk.');
       onNavigate('masuk');
-      return;
     }
-    onNavigate('beranda');
+    // Bila sesi langsung aktif, App memindahkan pengguna ke Beranda.
   };
 
   const grades = ['Kelas 10', 'Kelas 11', 'Kelas 12'];
@@ -86,7 +80,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
                 <span className="material-symbols-outlined text-[16px] text-[#52443d]">person</span>
                 Nama Lengkap Penjelajah
               </span>
-              <span className="text-[11px] text-[#52443d] opacity-75 font-normal">Sesuai Rapor</span>
             </label>
             <input
               id="reg-name"
@@ -106,7 +99,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
                 <span className="material-symbols-outlined text-[16px] text-[#52443d]">mail</span>
                 Email Siswa
               </span>
-              <span className="text-[11px] text-[#855300] font-medium">Resmi Dikbud</span>
             </label>
             <input
               id="reg-email"
@@ -166,7 +158,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
                 <span className="material-symbols-outlined text-[16px] text-[#52443d]">lock</span>
                 Kata Sandi
               </span>
-              <span className="text-[11px] text-[#52443d]">Kerahasiaan Arsip</span>
             </label>
             <div className="relative flex items-center">
               <input
@@ -192,28 +183,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
             </div>
           </div>
 
-          {/* Terms Agreement Checkbox */}
-          <div className="flex items-start gap-2.5 mt-1">
-            <input
-              id="agreement"
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
-              className="w-4 h-4 mt-0.5 rounded cursor-pointer accent-[#6b3a1c]"
-            />
-            <label htmlFor="agreement" className="text-[12px] text-[#52443d] leading-snug cursor-pointer select-none">
-              Saya menyetujui{' '}
-              <span className="font-semibold text-[#502408] underline decoration-[#ffb960] hover:text-[#855300]">
-                Ketentuan Penggunaan
-              </span>{' '}
-              dan{' '}
-              <span className="font-semibold text-[#502408] underline decoration-[#ffb960] hover:text-[#855300]">
-                Kebijakan Privasi
-              </span>{' '}
-              ArungMasa.
-            </label>
-          </div>
-
           {/* Submit Button */}
           <button
             type="submit"
@@ -235,28 +204,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
 
       {/* Switch to Login */}
       <div className="mt-6 flex flex-col items-center justify-center gap-1 text-center">
-        <p className="text-[13px] text-[#52443d]">Sudah memiliki catatan perjalanan?</p>
+        <p className="text-[13px] text-[#52443d]">Sudah punya akun?</p>
         <button
           onClick={() => onNavigate('masuk')}
           className="inline-flex items-center gap-1 text-[13px] text-[#502408] font-bold hover:text-[#855300] transition-colors underline decoration-[#855300] decoration-2 underline-offset-4 cursor-pointer"
         >
-          <span>Masuk ke Akun Anda</span>
+          <span>Masuk</span>
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </button>
       </div>
 
-      {/* Curriculum Banner */}
-      <div className="mt-5 p-3 rounded-xl bg-[#f3ede1]/70 border border-[#e8e2d6] flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-[#ffddb8] flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-[#2a1700] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-            verified
-          </span>
-        </div>
-        <div className="flex flex-col min-w-0">
-          <p className="text-[12px] text-[#1d1c14] font-semibold truncate">Kurikulum Merdeka Terintegrasi</p>
-          <p className="text-[11px] text-[#52443d] truncate">Materi terkurasi oleh arsiparis dan pengajar sejarah SMA.</p>
-        </div>
-      </div>
     </div>
   );
 };
